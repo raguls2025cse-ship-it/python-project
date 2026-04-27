@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard — Plagiarism Detector{% endblock %}
+
+{% block content %}
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <i data-lucide="shield-check" style="width:20px; height:20px;"></i>
+    Plagiarism Detector
+  </div>
+  <div class="navbar-actions">
+    <div class="user-pill">
+      <div class="user-avatar" style="background:#1a1a2e;">
+        <i data-lucide="shield" style="width:14px; height:14px; color:#818cf8;"></i>
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:600;">{{ user_name }}</div>
+        <div style="font-size:11px; color:#818cf8;">Administrator</div>
+      </div>
+    </div>
+    <a href="/logout/" class="btn btn-ghost btn-sm">
+      <i data-lucide="log-out" style="width:14px; height:14px;"></i>
+      Logout
+    </a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <h1>Admin Dashboard</h1>
+    <p>Monitor student submissions and plagiarism reports</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="num" style="color:var(--text);">{{ total }}</div>
+      <div class="lbl">Total Submissions</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:var(--green);">{{ low }}</div>
+      <div class="lbl">Low (&lt;30%)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:var(--yellow);">{{ medium }}</div>
+      <div class="lbl">Medium (30–69%)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:var(--red);">{{ high }}</div>
+      <div class="lbl">High (≥70%)</div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="card" style="margin-bottom:20px;">
+    <form method="GET" action="/admin-dashboard/">
+      <div style="display:grid; grid-template-columns:1fr auto; gap:10px;">
+        <input type="text" name="search" placeholder="Search by title or student name…" value="{{ search_query }}">
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="search" style="width:14px; height:14px;"></i>
+          Search
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Assignment list -->
+  {% if assignments %}
+    {% for a in assignments %}
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
+            <h3 style="font-size:15px; font-weight:600;">{{ a.title }}</h3>
+            {% if a.similarity < 30 %}
+              <span class="badge badge-low">
+                <i data-lucide="check" style="width:11px; height:11px;"></i>
+                Low · {{ a.similarity }}%
+              </span>
+            {% elif a.similarity < 70 %}
+              <span class="badge badge-medium">
+                <i data-lucide="alert-triangle" style="width:11px; height:11px;"></i>
+                Medium · {{ a.similarity }}%
+              </span>
+            {% else %}
+              <span class="badge badge-high">
+                <i data-lucide="x-circle" style="width:11px; height:11px;"></i>
+                High · {{ a.similarity }}%
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="progress-wrap" style="max-width:320px;">
+            <div class="progress-bar" style="width:{{ a.similarity }}%;
+              background:{% if a.similarity < 30 %}var(--green){% elif a.similarity < 70 %}var(--yellow){% else %}var(--red){% endif %};"></div>
+          </div>
+
+          <div style="margin-top:10px; display:flex; gap:20px; font-size:12px; color:var(--muted); flex-wrap:wrap;">
+            <span>
+              <i data-lucide="user" style="width:12px; height:12px; margin-right:4px;"></i>
+              {{ a.student_name|default:"Unknown" }}
+            </span>
+            <span>
+              <i data-lucide="file" style="width:12px; height:12px; margin-right:4px;"></i>
+              {{ a.original_name|default:a.file }}
+            </span>
+            <span>
+              <i data-lucide="clock" style="width:12px; height:12px; margin-right:4px;"></i>
+              {{ a.created_at }}
+            </span>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+          <a href="/admin/assignment/{{ a.id }}/" class="btn btn-primary btn-sm">
+            <i data-lucide="eye" style="width:13px; height:13px;"></i>
+            View Report
+          </a>
+          <form method="POST" action="/admin/assignment/{{ a.id }}/delete/" onsubmit="return confirm('Delete this submission?');" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">
+              <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+  {% else %}
+    <div class="card empty-state">
+      <i data-lucide="inbox" style="width:48px; height:48px; display:block; margin:0 auto 16px; opacity:.3;"></i>
+      <h3 style="margin-bottom:6px;">No submissions found</h3>
+      <p style="font-size:13px;">
+        {% if search_query %}No results for "{{ search_query }}".{% else %}No assignments have been submitted yet.{% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
